@@ -373,13 +373,17 @@ def _prominent_peaks(
     intensity, xcoords, ycoords : tuple of array
         Peak intensity values, x and y indices.
     """
-
+    import time
+    from collections import defaultdict
+    all_start = time.time()
+    times = defaultdict(int)
     img = image.copy()
     rows, cols = img.shape
 
     if threshold is None:
         threshold = 0.5 * cp.max(img)
 
+    filter_start = time.time()
     ycoords_size = 2 * min_ydistance + 1
     xcoords_size = 2 * min_xdistance + 1
     img_max = ndi.maximum_filter1d(
@@ -391,13 +395,18 @@ def _prominent_peaks(
     mask = img == img_max
     img *= mask
     img_t = img > threshold
+    filter_end = time.time()
+    times["filter"] += filter_end - filter_start
 
+    label_start = time.time()
     label_img = measure.label(img_t)
     props = measure.regionprops(label_img, img_max)
     # Sort the list of peaks by intensity, not left-right, so larger peaks
     # in Hough space cannot be arbitrarily suppressed by smaller neighbors
     props = sorted(props, key=lambda x: x.max_intensity)[::-1]
     coords = cp.asarray([np.round(p.centroid) for p in props], dtype=int)
+    label_end = time.time()
+    times["label"] = label_end - label_start
 
     img_peaks = []
     ycoords_peaks = []
@@ -408,7 +417,9 @@ def _prominent_peaks(
         -min_ydistance : min_ydistance + 1, -min_xdistance : min_xdistance + 1
     ]
 
+    suppression_start = time.time()
     for ycoords_idx, xcoords_idx in coords:
+        supression_body_start = time.time()
         accum = img_max[ycoords_idx, xcoords_idx]
         if accum > threshold:
             # absolute coordinate grid for local neighbourhood suppression
@@ -437,6 +448,10 @@ def _prominent_peaks(
             img_peaks.append(accum)
             ycoords_peaks.append(ycoords_idx)
             xcoords_peaks.append(xcoords_idx)
+        supression_body_end = time.time()
+        times["supression_body"] += supression_body_end - supression_body_start
+    supression_end = time.time()
+    times["supression"] += supression_end - supression_start
 
     img_peaks = cp.array(img_peaks)
     ycoords_peaks = cp.array(ycoords_peaks)
@@ -448,4 +463,7 @@ def _prominent_peaks(
         ycoords_peaks = ycoords_peaks[idx_maxsort]
         xcoords_peaks = xcoords_peaks[idx_maxsort]
 
+    all_end = time.time()
+    print("Total Time: %.5f" % (all_end - all_start))
+    print(times)
     return img_peaks, xcoords_peaks, ycoords_peaks
