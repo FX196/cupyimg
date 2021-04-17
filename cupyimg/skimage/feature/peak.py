@@ -419,7 +419,7 @@ def _prominent_peaks(
 
     suppression_start = time.time()
     for ycoords_idx, xcoords_idx in coords:
-        supression_body_start = time.time()
+        suppression_body_start = time.time()
         accum = img_max[ycoords_idx, xcoords_idx]
         if accum > threshold:
             # absolute coordinate grid for local neighbourhood suppression
@@ -448,10 +448,10 @@ def _prominent_peaks(
             img_peaks.append(accum)
             ycoords_peaks.append(ycoords_idx)
             xcoords_peaks.append(xcoords_idx)
-        supression_body_end = time.time()
-        times["supression_body"] += supression_body_end - supression_body_start
-    supression_end = time.time()
-    times["supression"] += supression_end - supression_start
+        suppression_body_end = time.time()
+        times["suppression_body"] += suppression_body_end - suppression_body_start
+    suppression_end = time.time()
+    times["suppression"] += suppression_end - suppression_start
 
     img_peaks = cp.array(img_peaks)
     ycoords_peaks = cp.array(ycoords_peaks)
